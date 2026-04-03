@@ -1,0 +1,23 @@
+# Virtual Environment
+venv/
+
+# Environment Variables (contains passwords - never push to GitHub)
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Database
+*.db
+
+# Event images (optional - uncomment if you don't want to push images)
+# app/static/events/
+
+# VSCode settings
+.vscode/
+
+# Windows
+Thumbs.db
+desktop.ini
