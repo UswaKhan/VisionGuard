@@ -1,0 +1,26 @@
+{% extends "caregiver/base.html" %}
+
+{% block title %}Live Stream - VisionGuard{% endblock %}
+
+{% block content %}
+<h1>Live Stream</h1>
+
+<div id="status" style="margin: 10px 0;">
+    <strong>Status:</strong> <span id="status-text">View Only</span>
+</div>
+
+<div id="video-container" style="border: 1px solid #ddd; padding: 10px;">
+    <img id="video-feed" style="width: 100%; max-width: 640px; display: none;" />
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
+<script>
+    const socket = io();
+    const videoFeed = document.getElementById('video-feed');
+
+    socket.on('video_frame', function(data) {
+        videoFeed.src = 'data:image/jpeg;base64,' + data.frame;
+        videoFeed.style.display = 'block';
+    });
+</script>
+{% endblock %}

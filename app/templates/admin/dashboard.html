@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - VisionGuard{% endblock %}
+
+{% block content %}
+<h1>Welcome Admin</h1>
+
+<div style="margin: 20px 0;">
+    <button class="btn" onclick="startStream()">Start Stream</button>
+    <button class="btn" onclick="stopStream()">Stop Stream</button>
+</div>
+
+<div style="display: flex; gap: 20px; margin: 20px 0;">
+    <div class="card">
+        <h3>Total Events</h3>
+        <p>{{ total_events }}</p>
+    </div>
+    <div class="card">
+        <h3>Total Alerts</h3>
+        <p>{{ total_alerts }}</p>
+    </div>
+    <div class="card">
+        <h3>Total Caregivers</h3>
+        <p>{{ total_caregivers }}</p>
+    </div>
+</div>
+{% endblock %}

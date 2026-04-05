@@ -1,0 +1,12 @@
+flask
+flask-socketio
+flask-login
+flask-sqlalchemy
+flask-mail
+psycopg2-binary
+python-dotenv
+opencv-python
+mediapipe
+ultralytics
+pillow
+eventlet

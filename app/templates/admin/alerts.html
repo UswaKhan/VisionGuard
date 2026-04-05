@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Alerts - VisionGuard{% endblock %}
+
+{% block content %}
+<h1>Alerts</h1>
+
+<form method="POST" action="/admin/alerts/delete_all" style="margin: 20px 0;">
+    <button type="submit" class="btn" onclick="return confirm('Delete all alerts?')">Delete All</button>
+</form>
+
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Message</th>
+            <th>Sent To</th>
+            <th>Date</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for alert in alerts %}
+        <tr>
+            <td>{{ alert.id }}</td>
+            <td>{{ alert.message }}</td>
+            <td>{{ alert.sent_to }}</td>
+            <td>{{ alert.created_at }}</td>
+            <td>
+                <form method="POST" action="/admin/alerts/{{ alert.id }}/delete">
+                    <button type="submit" class="btn">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
