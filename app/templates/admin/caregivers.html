@@ -1,43 +1,137 @@
 {% extends "base.html" %}
 
 {% block title %}Caregivers - VisionGuard{% endblock %}
+{% block page_title %}Caregivers{% endblock %}
 
 {% block content %}
-<h1>Caregivers</h1>
+<!-- Add Caregiver Form -->
+<div class="vg-card mb-4">
+    <div class="card-body">
+        <h5 class="mb-3" style="font-weight: 700;">
+            <i class="fas fa-user-plus me-2" style="color: var(--accent);"></i>Add New Caregiver
+        </h5>
+        <form method="POST" action="/admin/caregivers/add">
+            <div class="row g-3">
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <label class="form-label" style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Full Name</label>
+                    <input type="text" name="name" class="form-control" placeholder="Enter name" required
+                        style="border-radius: 10px; padding: 10px 16px; border: 1px solid #dee2e6;">
+                </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <label class="form-label" style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Email Address</label>
+                    <input type="email" name="email" class="form-control" placeholder="Enter email" required
+                        style="border-radius: 10px; padding: 10px 16px; border: 1px solid #dee2e6;">
+                </div>
+                <div class="col-12 col-sm-6 col-lg-2">
+                    <label class="form-label" style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Phone</label>
+                    <input type="text" name="phone" class="form-control" placeholder="Phone number" required
+                        style="border-radius: 10px; padding: 10px 16px; border: 1px solid #dee2e6;">
+                </div>
+                <div class="col-12 col-sm-6 col-lg-2">
+                    <label class="form-label" style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Password</label>
+                    <input type="password" name="password" class="form-control" placeholder="Set password" required
+                        style="border-radius: 10px; padding: 10px 16px; border: 1px solid #dee2e6;">
+                </div>
+                <div class="col-12 col-lg-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-accent w-100">
+                        <i class="fas fa-plus me-2"></i>Add Caregiver
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
 
-<form method="POST" action="/admin/caregivers/add" style="margin: 20px 0; padding: 15px; border: 1px solid #ddd;">
-    <h3>Add Caregiver</h3>
-    <input type="text" name="name" placeholder="Name" required>
-    <input type="email" name="email" placeholder="Email" required>
-    <input type="text" name="phone" placeholder="Phone" required>
-    <input type="password" name="password" placeholder="Password" required>
-    <button type="submit" class="btn">Add</button>
-</form>
+<!-- Caregivers Table -->
+<div class="vg-card">
+    <div class="card-body">
+        <h5 class="mb-3" style="font-weight: 700;">
+            <i class="fas fa-users me-2" style="color: var(--accent);"></i>Registered Caregivers
+        </h5>
 
-<table>
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Phone</th>
-            <th>Status</th>
-            <th>Action</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for caregiver in caregivers %}
-        <tr>
-            <td>{{ caregiver.name }}</td>
-            <td>{{ caregiver.email }}</td>
-            <td>{{ caregiver.phone }}</td>
-            <td>{{ 'Active' if caregiver.is_active else 'Inactive' }}</td>
-            <td>
-                <form method="POST" action="/admin/caregivers/{{ caregiver.id }}/delete">
-                    <button type="submit" class="btn">Delete</button>
-                </form>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+        {% if caregivers %}
+        <!-- Desktop Table (hidden on small screens) -->
+        <div class="table-responsive d-none d-md-block">
+            <table class="vg-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Status</th>
+                        <th style="width: 100px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for caregiver in caregivers %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center gap-3">
+                                <div style="width: 36px; height: 36px; background: linear-gradient(135deg, var(--accent), var(--accent-dark)); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 600; font-size: 13px; flex-shrink: 0;">
+                                    {{ caregiver.name[0]|upper }}
+                                </div>
+                                <span style="font-weight: 600;">{{ caregiver.name }}</span>
+                            </div>
+                        </td>
+                        <td style="font-size: 13px;">{{ caregiver.email }}</td>
+                        <td style="font-size: 13px;">{{ caregiver.phone }}</td>
+                        <td>
+                            {% if caregiver.is_active %}
+                                <span class="badge-active"><i class="fas fa-check-circle me-1"></i>Active</span>
+                            {% else %}
+                                <span class="badge-inactive"><i class="fas fa-minus-circle me-1"></i>Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <form method="POST" action="/admin/caregivers/delete/{{ caregiver.id }}">
+                                <button type="submit" class="btn btn-danger-soft btn-sm" onclick="return confirm('Remove this caregiver?')">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Mobile Cards (shown only on small screens) -->
+        <div class="d-md-none">
+            {% for caregiver in caregivers %}
+            <div style="background: #f8f9fa; border-radius: 12px; padding: 16px; margin-bottom: 12px;">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div style="width: 36px; height: 36px; background: linear-gradient(135deg, var(--accent), var(--accent-dark)); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 600; font-size: 13px; flex-shrink: 0;">
+                            {{ caregiver.name[0]|upper }}
+                        </div>
+                        <div>
+                            <div style="font-weight: 600; font-size: 14px;">{{ caregiver.name }}</div>
+                            {% if caregiver.is_active %}
+                                <span class="badge-active" style="font-size: 11px; padding: 3px 10px;"><i class="fas fa-check-circle me-1"></i>Active</span>
+                            {% else %}
+                                <span class="badge-inactive" style="font-size: 11px; padding: 3px 10px;"><i class="fas fa-minus-circle me-1"></i>Inactive</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <form method="POST" action="/admin/caregivers/delete/{{ caregiver.id }}">
+                        <button type="submit" class="btn btn-danger-soft btn-sm" onclick="return confirm('Remove this caregiver?')" style="padding: 6px 10px;">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </form>
+                </div>
+                <div style="font-size: 13px; color: var(--text-secondary);">
+                    <div class="mb-1"><i class="fas fa-envelope me-2" style="width: 16px;"></i>{{ caregiver.email }}</div>
+                    <div><i class="fas fa-phone me-2" style="width: 16px;"></i>{{ caregiver.phone }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-4" style="color: var(--text-secondary);">
+            <i class="fas fa-user-slash d-block mb-3" style="font-size: 40px; opacity: 0.3;"></i>
+            <p class="mb-0">No caregivers registered yet. Use the form above to add one.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
 {% endblock %}

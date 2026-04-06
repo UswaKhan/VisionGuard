@@ -1,39 +1,205 @@
 {% extends "base.html" %}
 
 {% block title %}Live Stream - VisionGuard{% endblock %}
+{% block page_title %}Live Stream{% endblock %}
+
+{% block extra_css %}
+<style>
+    .livestream-wrapper {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 70px - 56px);
+    }
+
+    .stream-controls {
+        background: var(--card-bg);
+        border-radius: 16px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        padding: 16px 24px;
+        margin-bottom: 16px;
+        flex-shrink: 0;
+    }
+
+    .stream-container {
+        position: relative;
+        background: #0a0e17;
+        border-radius: 16px;
+        overflow: hidden;
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid rgba(255, 255, 255, 0.05);
+        transition: border-color 0.5s ease, box-shadow 0.5s ease;
+    }
+
+    .stream-container.event-detected {
+        border-color: #dc3545;
+        box-shadow: 0 0 30px rgba(220, 53, 69, 0.3), 0 0 60px rgba(220, 53, 69, 0.1);
+        animation: glow-pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes glow-pulse {
+        0%, 100% { box-shadow: 0 0 30px rgba(220, 53, 69, 0.3), 0 0 60px rgba(220, 53, 69, 0.1); }
+        50% { box-shadow: 0 0 40px rgba(220, 53, 69, 0.5), 0 0 80px rgba(220, 53, 69, 0.2); }
+    }
+
+    .stream-container .placeholder-content {
+        text-align: center;
+        color: rgba(255, 255, 255, 0.3);
+    }
+
+    .stream-container .placeholder-content i {
+        font-size: 48px;
+        margin-bottom: 12px;
+    }
+
+    .stream-container .placeholder-content p {
+        font-size: 14px;
+        margin: 0;
+    }
+
+    #videoFeed {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: none;
+    }
+
+    .countdown-overlay {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        background: rgba(220, 53, 69, 0.9);
+        color: #fff;
+        padding: 8px 16px;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 14px;
+        display: none;
+        backdrop-filter: blur(8px);
+        animation: pulse-badge 1s ease-in-out infinite;
+    }
+
+    @keyframes pulse-badge {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 18px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .status-badge.live {
+        background: rgba(40, 167, 69, 0.12);
+        color: #28a745;
+    }
+
+    .status-badge.live .dot {
+        width: 8px;
+        height: 8px;
+        background: #28a745;
+        border-radius: 50%;
+        animation: blink 1.5s ease-in-out infinite;
+    }
+
+    .status-badge.stopped {
+        background: rgba(108, 117, 125, 0.12);
+        color: #6c757d;
+    }
+
+    .status-badge.stopped .dot {
+        width: 8px;
+        height: 8px;
+        background: #6c757d;
+        border-radius: 50%;
+    }
+
+    @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.3; }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<h1>Live Stream</h1>
+<div class="livestream-wrapper">
+    <!-- Controls Bar -->
+    <div class="stream-controls">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn btn-accent" id="streamToggleBtn" onclick="toggleStream()">
+                    <i class="fas fa-play me-2" id="toggleIcon"></i><span id="toggleText">Start Stream</span>
+                </button>
+            </div>
+            <div id="status-badge" class="status-badge stopped">
+                <span class="dot"></span>
+                <span id="status-text">Stopped</span>
+            </div>
+        </div>
+    </div>
 
-<div style="margin: 20px 0;">
-    <button class="btn" onclick="startStream()">Start Stream</button>
-    <button class="btn" onclick="stopStream()">Stop Stream</button>
+    <!-- Video Feed -->
+    <div class="stream-container" id="streamContainer">
+        <div class="placeholder-content" id="placeholder">
+            <i class="fas fa-video-slash"></i>
+            <p>Camera feed is not active</p>
+            <p style="font-size: 12px; margin-top: 4px;">Click "Start Stream" to begin monitoring</p>
+        </div>
+        <img id="videoFeed" />
+        <div class="countdown-overlay" id="countdownOverlay">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <span id="countdownText">Alert in 5s</span>
+        </div>
+    </div>
 </div>
+{% endblock %}
 
-<div id="status" style="margin: 10px 0;">
-    <strong>Status:</strong> <span id="status-text">Stopped</span>
-</div>
-
-<div id="video-container" style="border: 1px solid #ddd; padding: 10px;">
-    <img id="video-feed" style="width: 100%; max-width: 640px; display: none;" />
-</div>
-
+{% block extra_js %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
 <script>
     const socket = io();
-    const videoFeed = document.getElementById('video-feed');
+    const videoFeed = document.getElementById('videoFeed');
     const statusText = document.getElementById('status-text');
+    const statusBadge = document.getElementById('status-badge');
+    const placeholder = document.getElementById('placeholder');
+    const streamContainer = document.getElementById('streamContainer');
+    const countdownOverlay = document.getElementById('countdownOverlay');
+    const countdownText = document.getElementById('countdownText');
 
-    socket.on('video_frame', function(data) {
-        videoFeed.src = 'data:image/jpeg;base64,' + data.frame;
+    let streaming = false;
+
+    socket.on('frame', function(data) {
+        videoFeed.src = 'data:image/jpeg;base64,' + data.image;
         videoFeed.style.display = 'block';
+        placeholder.style.display = 'none';
     });
+
+    function toggleStream() {
+        if (streaming) {
+            stopStream();
+        } else {
+            startStream();
+        }
+    }
 
     function startStream() {
         fetch('/stream/start', { method: 'POST' })
             .then(res => res.json())
             .then(data => {
-                statusText.textContent = 'Running';
+                streaming = true;
+                document.getElementById('toggleText').textContent = 'Stop Stream';
+                document.getElementById('toggleIcon').className = 'fas fa-stop me-2';
+                document.getElementById('streamToggleBtn').className = 'btn btn-danger-soft';
+                statusText.textContent = 'Live';
+                statusBadge.className = 'status-badge live';
             });
     }
 
@@ -41,9 +207,30 @@
         fetch('/stream/stop', { method: 'POST' })
             .then(res => res.json())
             .then(data => {
+                streaming = false;
+                document.getElementById('toggleText').textContent = 'Start Stream';
+                document.getElementById('toggleIcon').className = 'fas fa-play me-2';
+                document.getElementById('streamToggleBtn').className = 'btn btn-accent';
                 statusText.textContent = 'Stopped';
+                statusBadge.className = 'status-badge stopped';
                 videoFeed.style.display = 'none';
+                placeholder.style.display = '';
+                countdownOverlay.style.display = 'none';
+                streamContainer.classList.remove('event-detected');
             });
     }
+
+    fetch('/stream/status')
+        .then(res => res.json())
+        .then(data => {
+            if (data.is_streaming) {
+                streaming = true;
+                document.getElementById('toggleText').textContent = 'Stop Stream';
+                document.getElementById('toggleIcon').className = 'fas fa-stop me-2';
+                document.getElementById('streamToggleBtn').className = 'btn btn-danger-soft';
+                statusText.textContent = 'Live';
+                statusBadge.className = 'status-badge live';
+            }
+        });
 </script>
 {% endblock %}

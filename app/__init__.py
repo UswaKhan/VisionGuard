@@ -14,7 +14,7 @@ def create_app(config_class=Config):
     app.config.from_object(config_class)
 
     db.init_app(app)
-    socketio.init_app(app)
+    socketio.init_app(app, async_mode="threading", cors_allowed_origins="*")
     mail.init_app(app)
 
     from app.routes.auth import login_manager, auth

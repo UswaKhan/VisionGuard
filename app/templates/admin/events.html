@@ -1,24 +1,133 @@
 {% extends "base.html" %}
 
 {% block title %}Events - VisionGuard{% endblock %}
+{% block page_title %}Events{% endblock %}
+
+{% block extra_css %}
+<style>
+    .event-card {
+        background: var(--card-bg);
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
+        transition: all 0.3s ease;
+    }
+
+    .event-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    }
+
+    .event-card .event-image {
+        position: relative;
+        aspect-ratio: 4 / 3;
+        overflow: hidden;
+        background: #f0f2f5;
+    }
+
+    .event-card .event-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.4s ease;
+    }
+
+    .event-card:hover .event-image img {
+        transform: scale(1.05);
+    }
+
+    .event-card .event-image .event-type-badge {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+    }
+
+    .event-card .event-body {
+        padding: 16px;
+    }
+
+    .event-card .event-body .event-date {
+        font-size: 13px;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .event-card .event-body .event-actions {
+        margin-top: 12px;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-secondary);
+    }
+
+    .empty-state i {
+        font-size: 48px;
+        margin-bottom: 16px;
+        opacity: 0.3;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<h1>Events</h1>
+<!-- Header Actions -->
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <p class="text-muted mb-0" style="font-size: 14px;">
+        <i class="fas fa-info-circle me-1"></i>
+        Showing {{ events|length }} captured event{{ 's' if events|length != 1 else '' }}
+    </p>
+    {% if events %}
+    <form method="POST" action="/admin/events/delete-all">
+        <button type="submit" class="btn btn-danger-soft btn-sm" onclick="return confirm('Are you sure you want to delete all events? This action cannot be undone.')">
+            <i class="fas fa-trash-alt me-2"></i>Delete All
+        </button>
+    </form>
+    {% endif %}
+</div>
 
-<form method="POST" action="/admin/events/delete_all" style="margin: 20px 0;">
-    <button type="submit" class="btn" onclick="return confirm('Delete all events?')">Delete All</button>
-</form>
-
-<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px;">
+<!-- Events Grid -->
+{% if events %}
+<div class="row g-4">
     {% for event in events %}
-    <div class="card">
-        <img src="{{ event.image_path }}" alt="{{ event.event_type }}" style="width: 100%;">
-        <p><strong>{{ event.event_type }}</strong></p>
-        <p>{{ event.created_at }}</p>
-        <form method="POST" action="/admin/events/{{ event.id }}/delete">
-            <button type="submit" class="btn">Delete</button>
-        </form>
+    <div class="col-sm-6 col-lg-4 col-xl-3">
+        <div class="event-card">
+            <div class="event-image">
+                <img src="{{ event.image_path }}" alt="{{ event.event_type }}">
+                <div class="event-type-badge">
+                    {% if event.event_type == 'fall' %}
+                        <span class="badge-fall"><i class="fas fa-person-falling-burst me-1"></i>Fall Detected</span>
+                    {% else %}
+                        <span class="badge-gesture"><i class="fas fa-hand me-1"></i>Hand Gesture</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="event-body">
+                <div class="event-date">
+                    <i class="fas fa-clock"></i>
+                    {{ event.created_at }}
+                </div>
+                <div class="event-actions">
+                    <form method="POST" action="/admin/events/delete/{{ event.id }}">
+                        <button type="submit" class="btn btn-danger-soft btn-sm w-100" onclick="return confirm('Delete this event?')">
+                            <i class="fas fa-trash-alt me-1"></i>Delete
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
     {% endfor %}
 </div>
+{% else %}
+<div class="vg-card">
+    <div class="empty-state">
+        <i class="fas fa-images d-block"></i>
+        <h5>No Events Yet</h5>
+        <p class="mb-0">Events will appear here when the system detects falls or hand gestures.</p>
+    </div>
+</div>
+{% endif %}
 {% endblock %}

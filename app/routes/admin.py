@@ -52,6 +52,21 @@ def livestream():
 @admin.route("/events")
 @admin_required
 def events():
+    invalid_events = Event.query.filter(
+        Event.image_path.isnot(None), ~Event.image_path.startswith("/static/")
+    ).all()
+
+    for event in invalid_events:
+        try:
+            if os.path.isabs(event.image_path) and os.path.exists(event.image_path):
+                os.remove(event.image_path)
+        except:
+            pass
+        db.session.delete(event)
+
+    if invalid_events:
+        db.session.commit()
+
     events = Event.query.order_by(Event.created_at.desc()).all()
     return render_template("admin/events.html", events=events)
 

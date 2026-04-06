@@ -1,26 +1,130 @@
 {% extends "caregiver/base.html" %}
 
 {% block title %}Live Stream - VisionGuard{% endblock %}
+{% block page_title %}Live Stream{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stream-container {
+        position: relative;
+        background: #0a0e17;
+        border-radius: 16px;
+        overflow: hidden;
+        aspect-ratio: 16 / 9;
+        max-width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid rgba(255, 255, 255, 0.05);
+        transition: border-color 0.5s ease, box-shadow 0.5s ease;
+    }
+
+    .stream-container.event-detected {
+        border-color: #dc3545;
+        box-shadow: 0 0 30px rgba(220, 53, 69, 0.3), 0 0 60px rgba(220, 53, 69, 0.1);
+        animation: glow-pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes glow-pulse {
+        0%, 100% { box-shadow: 0 0 30px rgba(220, 53, 69, 0.3), 0 0 60px rgba(220, 53, 69, 0.1); }
+        50% { box-shadow: 0 0 40px rgba(220, 53, 69, 0.5), 0 0 80px rgba(220, 53, 69, 0.2); }
+    }
+
+    .stream-container .placeholder-content {
+        text-align: center;
+        color: rgba(255, 255, 255, 0.3);
+    }
+
+    .stream-container .placeholder-content i {
+        font-size: 48px;
+        margin-bottom: 12px;
+    }
+
+    .stream-container .placeholder-content p {
+        font-size: 14px;
+        margin: 0;
+    }
+
+    #video-feed {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: none;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 18px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .status-badge.viewing {
+        background: rgba(67, 97, 238, 0.12);
+        color: #4361ee;
+    }
+
+    .status-badge.viewing .dot {
+        width: 8px;
+        height: 8px;
+        background: #4361ee;
+        border-radius: 50%;
+        animation: blink 1.5s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.3; }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<h1>Live Stream</h1>
-
-<div id="status" style="margin: 10px 0;">
-    <strong>Status:</strong> <span id="status-text">View Only</span>
+<!-- Status Bar -->
+<div class="vg-card mb-4">
+    <div class="card-body d-flex align-items-center justify-content-between">
+        <p class="mb-0 text-muted" style="font-size: 14px;">
+            <i class="fas fa-eye me-2"></i>View-only mode — stream is controlled by the administrator
+        </p>
+        <div class="status-badge viewing">
+            <span class="dot"></span>
+            <span id="status-text">View Only</span>
+        </div>
+    </div>
 </div>
 
-<div id="video-container" style="border: 1px solid #ddd; padding: 10px;">
-    <img id="video-feed" style="width: 100%; max-width: 640px; display: none;" />
+<!-- Video Feed -->
+<div class="stream-container" id="streamContainer">
+    <div class="placeholder-content" id="placeholder">
+        <i class="fas fa-video-slash"></i>
+        <p>Waiting for camera feed</p>
+        <p style="font-size: 12px; margin-top: 4px;">The feed will appear when the administrator starts the stream</p>
+    </div>
+    <img id="video-feed" alt="Live Feed" />
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
 <script>
     const socket = io();
     const videoFeed = document.getElementById('video-feed');
+    const placeholder = document.getElementById('placeholder');
+    const streamContainer = document.getElementById('streamContainer');
 
-    socket.on('video_frame', function(data) {
-        videoFeed.src = 'data:image/jpeg;base64,' + data.frame;
+    socket.on('frame', function(data) {
+        videoFeed.src = 'data:image/jpeg;base64,' + data.image;
         videoFeed.style.display = 'block';
+        placeholder.style.display = 'none';
+
+        if (data.countdown && data.countdown > 0) {
+            streamContainer.classList.add('event-detected');
+        } else {
+            streamContainer.classList.remove('event-detected');
+        }
     });
 </script>
 {% endblock %}

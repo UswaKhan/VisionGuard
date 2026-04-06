@@ -12,8 +12,8 @@ __pycache__/
 # Database
 *.db
 
-# Event images (optional - uncomment if you don't want to push images)
-# app/static/events/
+# Event images (test data - not pushed to GitHub)
+app/static/events/*.jpg
 
 # VSCode settings
 .vscode/

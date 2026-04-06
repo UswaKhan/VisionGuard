@@ -1,27 +1,77 @@
 {% extends "base.html" %}
 
 {% block title %}Admin Dashboard - VisionGuard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
 
 {% block content %}
-<h1>Welcome Admin</h1>
-
-<div style="margin: 20px 0;">
-    <button class="btn" onclick="startStream()">Start Stream</button>
-    <button class="btn" onclick="stopStream()">Stop Stream</button>
+<!-- Quick Actions -->
+<div class="d-flex align-items-center gap-3 mb-4">
 </div>
 
-<div style="display: flex; gap: 20px; margin: 20px 0;">
-    <div class="card">
-        <h3>Total Events</h3>
-        <p>{{ total_events }}</p>
+<!-- Stats Row -->
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(67, 97, 238, 0.1); color: #4361ee;">
+                <i class="fas fa-images"></i>
+            </div>
+            <div class="stat-info">
+                <h3>{{ total_events }}</h3>
+                <p>Total Events</p>
+            </div>
+        </div>
     </div>
-    <div class="card">
-        <h3>Total Alerts</h3>
-        <p>{{ total_alerts }}</p>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(220, 53, 69, 0.1); color: #dc3545;">
+                <i class="fas fa-bell"></i>
+            </div>
+            <div class="stat-info">
+                <h3>{{ total_alerts }}</h3>
+                <p>Total Alerts</p>
+            </div>
+        </div>
     </div>
-    <div class="card">
-        <h3>Total Caregivers</h3>
-        <p>{{ total_caregivers }}</p>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(40, 167, 69, 0.1); color: #28a745;">
+                <i class="fas fa-user-nurse"></i>
+            </div>
+            <div class="stat-info">
+                <h3>{{ total_caregivers }}</h3>
+                <p>Total Caregivers</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Links -->
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="vg-card">
+            <div class="card-body">
+                <h5 class="mb-3" style="font-weight: 700;">
+                    <i class="fas fa-video me-2" style="color: var(--accent);"></i>Live Monitoring
+                </h5>
+                <p class="text-muted mb-3" style="font-size: 14px;">Access the live camera feed with real-time fall and hand gesture detection.</p>
+                <a href="/admin/livestream" class="btn btn-accent btn-sm">
+                    <i class="fas fa-arrow-right me-1"></i>Go to Live Stream
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="vg-card">
+            <div class="card-body">
+                <h5 class="mb-3" style="font-weight: 700;">
+                    <i class="fas fa-clock-rotate-left me-2" style="color: var(--accent);"></i>Recent Activity
+                </h5>
+                <p class="text-muted mb-3" style="font-size: 14px;">Review captured events, manage alerts, and monitor caregiver assignments.</p>
+                <a href="/admin/events" class="btn btn-accent btn-sm">
+                    <i class="fas fa-arrow-right me-1"></i>View Events
+                </a>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}

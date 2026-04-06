@@ -1,38 +1,82 @@
 {% extends "base.html" %}
 
 {% block title %}Alerts - VisionGuard{% endblock %}
+{% block page_title %}Alerts{% endblock %}
 
 {% block content %}
-<h1>Alerts</h1>
+<!-- Header Actions -->
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <p class="text-muted mb-0" style="font-size: 14px;">
+        <i class="fas fa-info-circle me-1"></i>
+        {{ alerts|length }} alert{{ 's' if alerts|length != 1 else '' }} sent
+    </p>
+    {% if alerts %}
+    <form method="POST" action="/admin/alerts/delete-all">
+        <button type="submit" class="btn btn-danger-soft btn-sm" onclick="return confirm('Are you sure you want to delete all alerts? This action cannot be undone.')">
+            <i class="fas fa-trash-alt me-2"></i>Delete All
+        </button>
+    </form>
+    {% endif %}
+</div>
 
-<form method="POST" action="/admin/alerts/delete_all" style="margin: 20px 0;">
-    <button type="submit" class="btn" onclick="return confirm('Delete all alerts?')">Delete All</button>
-</form>
-
-<table>
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Message</th>
-            <th>Sent To</th>
-            <th>Date</th>
-            <th>Action</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for alert in alerts %}
-        <tr>
-            <td>{{ alert.id }}</td>
-            <td>{{ alert.message }}</td>
-            <td>{{ alert.sent_to }}</td>
-            <td>{{ alert.created_at }}</td>
-            <td>
-                <form method="POST" action="/admin/alerts/{{ alert.id }}/delete">
-                    <button type="submit" class="btn">Delete</button>
-                </form>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<!-- Alerts Table -->
+{% if alerts %}
+<div class="vg-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="vg-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Message</th>
+                        <th>Sent To</th>
+                        <th>Date</th>
+                        <th style="width: 100px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for alert in alerts %}
+                    <tr>
+                        <td>
+                            <span style="font-weight: 600; color: var(--text-secondary);">#{{ alert.id }}</span>
+                        </td>
+                        <td>
+                            {% if 'fall' in alert.message|lower %}
+                                <span class="badge-fall me-2"><i class="fas fa-person-falling-burst"></i></span>
+                            {% else %}
+                                <span class="badge-gesture me-2"><i class="fas fa-hand"></i></span>
+                            {% endif %}
+                            {{ alert.message }}
+                        </td>
+                        <td>
+                            <span style="font-size: 13px;">{{ alert.sent_to }}</span>
+                        </td>
+                        <td>
+                            <span style="font-size: 13px; color: var(--text-secondary);">
+                                <i class="fas fa-clock me-1"></i>{{ alert.created_at }}
+                            </span>
+                        </td>
+                        <td>
+                            <form method="POST" action="/admin/alerts/delete/{{ alert.id }}">
+                                <button type="submit" class="btn btn-danger-soft btn-sm" onclick="return confirm('Delete this alert?')">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="vg-card">
+    <div class="text-center py-5" style="color: var(--text-secondary);">
+        <i class="fas fa-bell-slash d-block mb-3" style="font-size: 48px; opacity: 0.3;"></i>
+        <h5>No Alerts Yet</h5>
+        <p class="mb-0">Alerts will appear here when the system sends notifications to caregivers.</p>
+    </div>
+</div>
+{% endif %}
 {% endblock %}

@@ -52,7 +52,7 @@ def login():
         if email == Config.ADMIN_EMAIL and password == Config.ADMIN_PASSWORD:
             user = User("admin_" + email, email, "admin")
             login_user(user)
-            return redirect(url_for("admin.livestream"))
+            return redirect(url_for("admin.dashboard"))
 
         caregiver = Caregiver.query.filter_by(email=email, password=password).first()
         if caregiver:
@@ -60,7 +60,7 @@ def login():
                 str(caregiver.id), caregiver.email, "caregiver", caregiver.is_active
             )
             login_user(user)
-            return redirect(url_for("caregiver.livestream"))
+            return redirect(url_for("caregiver.dashboard"))
 
         flash("Invalid email or password")
 
