@@ -177,6 +177,11 @@
             background: transparent !important;
         }
 
+        .form-floating > .form-control:focus ~ label::after,
+        .form-floating > .form-control:not(:placeholder-shown) ~ label::after {
+            background: transparent !important;
+        }
+
         .form-floating .form-control:-webkit-autofill,
         .form-floating .form-control:-webkit-autofill:hover,
         .form-floating .form-control:-webkit-autofill:focus {

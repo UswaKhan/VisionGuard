@@ -322,7 +322,7 @@
             </div>
             <div class="brand-text">
                 <h5>VisionGuard</h5>
-                <small>Caregiver</small>
+                <small>{{ caregiver_name|default('Caregiver') }}</small>
             </div>
         </div>
 
@@ -356,10 +356,10 @@
             </div>
             <div class="user-info">
                 <div class="user-details text-end">
-                    <span>Caregiver</span>
+                    <span>{{ caregiver_name|default('Caregiver') }}</span>
                     <small>Care Team</small>
                 </div>
-                <div class="user-avatar">C</div>
+                <div class="user-avatar">{{ caregiver_name[0]|upper if caregiver_name else 'C' }}</div>
             </div>
         </header>
 
