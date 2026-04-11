@@ -123,7 +123,7 @@ def delete_event(id):
 
     if event.image_path:
         image_path = os.path.join(
-            current_app.root_path, "static", event.image_path.lstrip("/")
+            current_app.root_path, event.image_path.lstrip("/")
         )
         if os.path.exists(image_path):
             os.remove(image_path)
@@ -143,7 +143,7 @@ def delete_all_events():
     for event in events:
         if event.image_path:
             image_path = os.path.join(
-                current_app.root_path, "static", event.image_path.lstrip("/")
+                current_app.root_path, event.image_path.lstrip("/")
             )
             if os.path.exists(image_path):
                 os.remove(image_path)

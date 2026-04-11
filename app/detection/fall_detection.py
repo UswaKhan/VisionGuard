@@ -54,11 +54,12 @@ class FallDetector:
             self.consecutive_frames = 0
 
         is_fall = self.consecutive_frames >= self.required_frames
-        if is_fall:
-            self.consecutive_frames = 0
-            self.last_fall_time = time.time()
 
         return frame, is_fall
+
+    def start_cooldown(self):
+        self.consecutive_frames = 0
+        self.last_fall_time = time.time()
 
     def close(self):
         pass

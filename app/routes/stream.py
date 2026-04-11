@@ -140,6 +140,8 @@ def generate_frames(app):
     cached_landmarks = None
     cached_hand_gesture = False
     cached_fall = False
+    recovery_frames = 0
+    RECOVERY_THRESHOLD = 3
 
     while is_streaming:
         ret, frame = camera.read()
@@ -207,17 +209,25 @@ def generate_frames(app):
             current_event_type = "fall"
             event_countdown = 5
             countdown_start = time.time()
+            recovery_frames = 0
             print(f">>> Fall detected! Countdown started.")
 
         if event_countdown > 0:
             if current_event_type == "hand_gesture" and not cached_hand_gesture:
                 event_countdown = 0
                 current_event_type = None
+                recovery_frames = 0
                 print(f">>> Hand lowered — countdown cancelled.")
-            elif current_event_type == "fall" and not cached_fall:
-                event_countdown = 0
-                current_event_type = None
-                print(f">>> Person recovered — countdown cancelled.")
+            elif current_event_type == "fall":
+                if not cached_fall:
+                    recovery_frames += 1
+                    if recovery_frames >= RECOVERY_THRESHOLD:
+                        event_countdown = 0
+                        current_event_type = None
+                        recovery_frames = 0
+                        print(f">>> Person recovered — countdown cancelled.")
+                else:
+                    recovery_frames = 0
 
         if event_countdown > 0:
             remaining = int(event_countdown - (time.time() - countdown_start))
@@ -240,6 +250,8 @@ def generate_frames(app):
                         args=(app, save_frame, evt_type),
                         daemon=True,
                     ).start()
+                    if evt_type == "fall":
+                        fall_detector.start_cooldown()
 
                 event_countdown = 0
                 current_event_type = None

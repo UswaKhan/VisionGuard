@@ -75,17 +75,17 @@ AI-powered elderly/patient monitoring system. See `PROJECT.md` for the full spec
 | 3.7 | Pose skeleton overlay → green skeleton drawn on person | PASS |
 | 3.8 | Stream does not freeze or stutter during detection | PASS |
 
-### 4. Hand Gesture Detection — NOT YET TESTED
+### 4. Hand Gesture Detection — PASSED
 
 | # | Test Case | Status |
 |---|-----------|--------|
-| 4.1 | Raise one hand above shoulder and hold → "RAISED HAND" label appears | |
-| 4.2 | Hold hand raised for 3+ consecutive detection frames → countdown starts | |
-| 4.3 | Keep hand raised through full countdown → event is created | |
-| 4.4 | Raise hand, then lower before countdown completes → countdown cancels | |
-| 4.5 | Brief hand raise (1-2 detection frames only) → no countdown starts | |
-| 4.6 | Raise hand again immediately after a confirmed event → new countdown starts | |
-| 4.7 | Raise hand while a fall countdown is active → waits, fall takes priority | |
+| 4.1 | Raise one hand above shoulder and hold → "RAISED HAND" label appears | PASS |
+| 4.2 | Hold hand raised for 3+ consecutive detection frames → countdown starts | PASS |
+| 4.3 | Keep hand raised through full countdown → event is created | PASS |
+| 4.4 | Raise hand, then lower before countdown completes → countdown cancels | PASS |
+| 4.5 | Brief hand raise (1-2 detection frames only) → no countdown starts | PASS |
+| 4.6 | Raise hand again immediately after a confirmed event → new countdown starts | PASS |
+| 4.7 | Raise hand while a fall countdown is active → waits, fall takes priority | PASS |
 
 ### 5. Fall Detection — NOT YET TESTED
 
@@ -99,38 +99,38 @@ AI-powered elderly/patient monitoring system. See `PROJECT.md` for the full spec
 | 5.6 | Fall again within 30 seconds of a confirmed fall → no new detection (cooldown) | |
 | 5.7 | Fall again after 30 seconds → new detection and countdown starts | |
 
-### 6. Event Countdown Behavior — NOT YET TESTED
+### 6. Event Countdown Behavior — PASSED
 
 | # | Test Case | Status |
 |---|-----------|--------|
-| 6.1 | Countdown displays on the livestream → "Alert in Xs" visible | |
-| 6.2 | Countdown decrements smoothly → 5, 4, 3, 2, 1, fires (no oscillation) | |
-| 6.3 | Countdown cancellation → text disappears when condition clears | |
-| 6.4 | Stream does not freeze when countdown completes | |
+| 6.1 | Countdown displays on the livestream → "Alert in Xs" visible | PASS |
+| 6.2 | Countdown decrements smoothly → 5, 4, 3, 2, 1, fires (no oscillation) | PASS |
+| 6.3 | Countdown cancellation → text disappears when condition clears | PASS |
+| 6.4 | Stream does not freeze when countdown completes | PASS |
 
-### 7. Event Logging — NOT YET TESTED
-
-| # | Test Case | Status |
-|---|-----------|--------|
-| 7.1 | Confirmed event creates a record → appears in admin events page | |
-| 7.2 | Event image is a clean snapshot → no overlay text or pose skeleton | |
-| 7.3 | Event shows correct type → "Fall Detected" or "Hand Gesture" badge | |
-| 7.4 | Event shows correct timestamp | |
-| 7.5 | Event image loads in the browser → valid path, image renders | |
-| 7.6 | Events appear in caregiver's event page too (read-only) | |
-
-### 8. Email Alerts — NOT YET TESTED
+### 7. Event Logging — PASSED
 
 | # | Test Case | Status |
 |---|-----------|--------|
-| 8.1 | Email sent on confirmed hand gesture → admin + active caregivers receive it | |
-| 8.2 | Email sent on confirmed fall → admin + active caregivers receive it | |
-| 8.3 | Email subject matches event type | |
-| 8.4 | Email body contains timestamp | |
-| 8.5 | Email has image attachment (clean snapshot) | |
-| 8.6 | Alert record created in database → appears in admin alerts page | |
-| 8.7 | Inactive caregiver does NOT receive email | |
-| 8.8 | Email fails (bad SMTP config) → error logged, stream continues | |
+| 7.1 | Confirmed event creates a record → appears in admin events page | PASS |
+| 7.2 | Event image is a clean snapshot → no overlay text or pose skeleton | PASS |
+| 7.3 | Event shows correct type → "Fall Detected" or "Hand Gesture" badge | PASS |
+| 7.4 | Event shows correct timestamp | PASS |
+| 7.5 | Event image loads in the browser → valid path, image renders | PASS |
+| 7.6 | Events appear in caregiver's event page too (read-only) | PASS |
+
+### 8. Email Alerts — PASSED
+
+| # | Test Case | Status |
+|---|-----------|--------|
+| 8.1 | Email sent on confirmed hand gesture → admin + active caregivers receive it | PASS |
+| 8.2 | Email sent on confirmed fall → admin + active caregivers receive it | PASS |
+| 8.3 | Email subject matches event type | PASS |
+| 8.4 | Email body contains timestamp | PASS |
+| 8.5 | Email has image attachment (clean snapshot) | PASS |
+| 8.6 | Alert record created in database → appears in admin alerts page | PASS |
+| 8.7 | Inactive caregiver does NOT receive email | PASS |
+| 8.8 | Email fails (bad SMTP config) → error logged, stream continues | PASS |
 
 ### 9. SMS Alerts — NOT YET TESTED
 
@@ -140,32 +140,32 @@ AI-powered elderly/patient monitoring system. See `PROJECT.md` for the full spec
 | 9.2 | SMS message matches event type | |
 | 9.3 | SMS failure does not block the system | |
 
-### 10. Admin Dashboard — NOT YET TESTED
+### 10. Admin Dashboard — PASSED
 
 | # | Test Case | Status |
 |---|-----------|--------|
-| 10.1 | Dashboard shows correct event count | |
-| 10.2 | Dashboard shows correct alert count | |
-| 10.3 | Dashboard shows correct caregiver count | |
-| 10.4 | Delete individual event → removed from list, image file deleted | |
-| 10.5 | Delete all events → all cleared, all image files deleted | |
-| 10.6 | Delete individual alert → removed from list | |
-| 10.7 | Delete all alerts → all cleared | |
+| 10.1 | Dashboard shows correct event count | PASS |
+| 10.2 | Dashboard shows correct alert count | PASS |
+| 10.3 | Dashboard shows correct caregiver count | PASS |
+| 10.4 | Delete individual event → removed from list, image file deleted | PASS |
+| 10.5 | Delete all events → all cleared, all image files deleted | PASS |
+| 10.6 | Delete individual alert → removed from list | PASS |
+| 10.7 | Delete all alerts → all cleared | PASS |
 
-### 11. Caregiver Dashboard — NOT YET TESTED
-
-| # | Test Case | Status |
-|---|-----------|--------|
-| 11.1 | Dashboard shows correct event count | |
-| 11.2 | Caregiver name displayed in sidebar and navbar | |
-| 11.3 | No delete buttons on events → read-only view | |
-| 11.4 | No start/stop buttons on livestream → view-only mode | |
-
-### 12. UI / Responsiveness — NOT YET TESTED
+### 11. Caregiver Dashboard — PASSED
 
 | # | Test Case | Status |
 |---|-----------|--------|
-| 12.1 | All pages render on desktop (1920x1080) → no overflow | |
-| 12.2 | All pages render on mobile (375px width) → sidebar collapses, cards stack | |
-| 12.3 | Sidebar toggle works on mobile | |
-| 12.4 | Empty states display correctly → placeholder messages shown | |
+| 11.1 | Dashboard shows correct event count | PASS |
+| 11.2 | Caregiver name displayed in sidebar and navbar | PASS |
+| 11.3 | No delete buttons on events → read-only view | PASS |
+| 11.4 | No start/stop buttons on livestream → view-only mode | PASS |
+
+### 12. UI / Responsiveness — PASSED
+
+| # | Test Case | Status |
+|---|-----------|--------|
+| 12.1 | All pages render on desktop (1920x1080) → no overflow | PASS |
+| 12.2 | All pages render on mobile (375px width) → sidebar collapses, cards stack | PASS |
+| 12.3 | Sidebar toggle works on mobile | PASS |
+| 12.4 | Empty states display correctly → placeholder messages shown | PASS |
