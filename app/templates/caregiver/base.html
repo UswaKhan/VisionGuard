@@ -364,6 +364,16 @@
         </header>
 
         <main class="page-content">
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-info alert-dismissible fade show" role="alert" style="border-radius: 12px; font-size: 14px;">
+                            <i class="fas fa-info-circle me-2"></i>{{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
             {% block content %}{% endblock %}
         </main>
     </div>

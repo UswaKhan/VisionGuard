@@ -5,6 +5,12 @@ import time
 import threading
 from datetime import datetime
 from flask import Blueprint, jsonify, request, current_app
+from mediapipe.tasks.python.vision.pose_landmarker import (
+    PoseLandmarker,
+    PoseLandmarkerOptions,
+)
+from mediapipe.tasks.python.core.base_options import BaseOptions
+from mediapipe import Image, ImageFormat
 from app import socketio, db
 from app.models import Event, Alert
 from app.detection.hand_gesture import HandGestureDetector
@@ -21,6 +27,91 @@ hand_detector = HandGestureDetector()
 fall_detector = FallDetector()
 event_countdown = 0
 current_event_type = None
+
+POSE_CONNECTIONS = [
+    (11, 12),
+    (11, 13),
+    (13, 15),
+    (12, 14),
+    (14, 16),
+    (11, 23),
+    (12, 24),
+    (23, 24),
+    (23, 25),
+    (25, 27),
+    (24, 26),
+    (26, 28),
+]
+
+
+def create_pose_landmarker():
+    model_path = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)), "..", "pose_landmarker.task"
+    )
+    if not os.path.exists(model_path):
+        model_path = "pose_landmarker.task"
+    base_options = BaseOptions(model_asset_path=model_path)
+    options = PoseLandmarkerOptions(base_options=base_options)
+    return PoseLandmarker.create_from_options(options)
+
+
+def draw_pose(frame, landmarks, h, w):
+    for lm in landmarks:
+        cx, cy = int(lm.x * w), int(lm.y * h)
+        cv2.circle(frame, (cx, cy), 3, (0, 255, 0), -1)
+    for start_idx, end_idx in POSE_CONNECTIONS:
+        if start_idx < len(landmarks) and end_idx < len(landmarks):
+            s = landmarks[start_idx]
+            e = landmarks[end_idx]
+            cv2.line(
+                frame,
+                (int(s.x * w), int(s.y * h)),
+                (int(e.x * w), int(e.y * h)),
+                (0, 200, 0),
+                2,
+            )
+
+
+def save_event_and_alert(app, frame, event_type):
+    try:
+        with app.app_context():
+            event_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{event_type}_{event_time}.jpg"
+            static_dir = os.path.join(
+                os.path.dirname(os.path.dirname(__file__)),
+                "static",
+                "events",
+            )
+            os.makedirs(static_dir, exist_ok=True)
+            image_path = os.path.join(static_dir, filename)
+            web_path = "/static/events/" + filename
+
+            cv2.imwrite(image_path, frame)
+
+            event = Event(event_type=event_type, image_path=web_path)
+            db.session.add(event)
+            db.session.commit()
+
+            try:
+                send_email_alert(event_type, image_path)
+                alert = Alert(
+                    event_id=event.id,
+                    message=f"Email alert sent for {event_type}",
+                    sent_to="admin + caregivers",
+                )
+                db.session.add(alert)
+                db.session.commit()
+                print(f">>> Email alert sent successfully")
+            except Exception as e:
+                print(f"Email error: {e}")
+
+            try:
+                send_sms_alert(event_type)
+                print(f">>> SMS alert sent")
+            except Exception as e:
+                print(f"SMS error (non-critical): {e}")
+    except Exception as e:
+        print(f"Event save error: {e}")
 
 
 def generate_frames(app):
@@ -41,9 +132,14 @@ def generate_frames(app):
             print(f">>> Camera ready after {i} frames")
             break
 
-    print(">>> Streaming started")
+    pose_landmarker = create_pose_landmarker()
+    print(">>> Pose model loaded, streaming started")
+
     frame_counter = 0
     countdown_start = 0
+    cached_landmarks = None
+    cached_hand_gesture = False
+    cached_fall = False
 
     while is_streaming:
         ret, frame = camera.read()
@@ -51,23 +147,56 @@ def generate_frames(app):
             time.sleep(0.01)
             continue
 
-        frame = cv2.flip(frame, 1)
+        clean_frame = frame.copy()
 
         frame_counter += 1
         is_hand_gesture = False
         is_fall = False
 
-        if frame_counter % 5 == 0:
+        if frame_counter % 3 == 0:
             try:
-                frame, is_hand_gesture = hand_detector.detect(frame)
-            except Exception as e:
-                print(f"Hand detection error: {e}")
+                h, w = frame.shape[:2]
+                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                mp_image = Image(image_format=ImageFormat.SRGB, data=rgb_frame)
+                result = pose_landmarker.detect(mp_image)
 
-        if frame_counter % 10 == 0:
-            try:
-                frame, is_fall = fall_detector.detect(frame)
+                if result and result.pose_landmarks:
+                    cached_landmarks = result.pose_landmarks[0]
+                else:
+                    cached_landmarks = None
+
+                frame, cached_hand_gesture = hand_detector.detect(
+                    frame, cached_landmarks, h, w
+                )
+                frame, cached_fall = fall_detector.detect(frame, cached_landmarks, h, w)
+                is_hand_gesture = cached_hand_gesture
+                is_fall = cached_fall
             except Exception as e:
-                print(f"Fall detection error: {e}")
+                print(f"Detection error: {e}")
+        else:
+            h, w = frame.shape[:2]
+            if cached_landmarks:
+                draw_pose(frame, cached_landmarks, h, w)
+            if cached_hand_gesture:
+                cv2.putText(
+                    frame,
+                    "RAISED HAND",
+                    (10, 60),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.8,
+                    (0, 255, 0),
+                    2,
+                )
+            if cached_fall:
+                cv2.putText(
+                    frame,
+                    "FALL DETECTED!",
+                    (10, 90),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.8,
+                    (0, 0, 255),
+                    2,
+                )
 
         if is_hand_gesture and event_countdown == 0:
             current_event_type = "hand_gesture"
@@ -79,6 +208,16 @@ def generate_frames(app):
             event_countdown = 5
             countdown_start = time.time()
             print(f">>> Fall detected! Countdown started.")
+
+        if event_countdown > 0:
+            if current_event_type == "hand_gesture" and not cached_hand_gesture:
+                event_countdown = 0
+                current_event_type = None
+                print(f">>> Hand lowered — countdown cancelled.")
+            elif current_event_type == "fall" and not cached_fall:
+                event_countdown = 0
+                current_event_type = None
+                print(f">>> Person recovered — countdown cancelled.")
 
         if event_countdown > 0:
             remaining = int(event_countdown - (time.time() - countdown_start))
@@ -94,47 +233,13 @@ def generate_frames(app):
                 )
             else:
                 if current_event_type:
-                    try:
-                        with app.app_context():
-                            event_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-                            filename = f"{current_event_type}_{event_time}.jpg"
-                            static_dir = os.path.join(
-                                os.path.dirname(os.path.dirname(__file__)),
-                                "static",
-                                "events",
-                            )
-                            os.makedirs(static_dir, exist_ok=True)
-                            image_path = os.path.join(static_dir, filename)
-                            web_path = "/static/events/" + filename
-
-                            cv2.imwrite(image_path, frame)
-
-                            event = Event(
-                                event_type=current_event_type, image_path=web_path
-                            )
-                            db.session.add(event)
-                            db.session.commit()
-
-                            try:
-                                send_email_alert(current_event_type, image_path)
-                                alert = Alert(
-                                    event_id=event.id,
-                                    message=f"Email alert sent for {current_event_type}",
-                                    sent_to="admin + caregivers",
-                                )
-                                db.session.add(alert)
-                                db.session.commit()
-                                print(f">>> Email alert sent successfully")
-                            except Exception as e:
-                                print(f"Email error: {e}")
-
-                            try:
-                                send_sms_alert(current_event_type)
-                                print(f">>> SMS alert sent")
-                            except Exception as e:
-                                print(f"SMS error (non-critical): {e}")
-                    except Exception as e:
-                        print(f"Event save error: {e}")
+                    save_frame = clean_frame.copy()
+                    evt_type = current_event_type
+                    threading.Thread(
+                        target=save_event_and_alert,
+                        args=(app, save_frame, evt_type),
+                        daemon=True,
+                    ).start()
 
                 event_countdown = 0
                 current_event_type = None
@@ -142,9 +247,10 @@ def generate_frames(app):
         _, buffer = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 60])
         frame_base64 = base64.b64encode(buffer).decode("utf-8")
         socketio.emit("frame", {"image": frame_base64})
-        time.sleep(0.1)
+        time.sleep(0.05)
 
     print(">>> Stopping stream")
+    pose_landmarker.close()
     if camera:
         camera.release()
         camera = None
@@ -174,6 +280,7 @@ def stop_stream():
         return jsonify({"message": "Stream not running"}), 400
 
     is_streaming = False
+    socketio.emit("stream_stopped")
 
     return jsonify({"message": "Stream stopped"}), 200
 

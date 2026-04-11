@@ -63,7 +63,7 @@
     #videoFeed {
         width: 100%;
         height: 100%;
-        object-fit: cover;
+        object-fit: contain;
         display: none;
     }
 
@@ -219,6 +219,19 @@
                 streamContainer.classList.remove('event-detected');
             });
     }
+
+    socket.on('stream_stopped', function() {
+        streaming = false;
+        document.getElementById('toggleText').textContent = 'Start Stream';
+        document.getElementById('toggleIcon').className = 'fas fa-play me-2';
+        document.getElementById('streamToggleBtn').className = 'btn btn-accent';
+        statusText.textContent = 'Stopped';
+        statusBadge.className = 'status-badge stopped';
+        videoFeed.style.display = 'none';
+        placeholder.style.display = '';
+        countdownOverlay.style.display = 'none';
+        streamContainer.classList.remove('event-detected');
+    });
 
     fetch('/stream/status')
         .then(res => res.json())

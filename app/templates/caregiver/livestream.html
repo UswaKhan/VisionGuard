@@ -126,5 +126,11 @@
             streamContainer.classList.remove('event-detected');
         }
     });
+
+    socket.on('stream_stopped', function() {
+        videoFeed.style.display = 'none';
+        placeholder.style.display = '';
+        streamContainer.classList.remove('event-detected');
+    });
 </script>
 {% endblock %}
