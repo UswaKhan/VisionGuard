@@ -18,3 +18,7 @@ class Config:
     ADMIN_EMAIL = os.getenv("ADMIN_EMAIL")
     ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
     ADMIN_PHONE = os.getenv("ADMIN_PHONE")
+    VONAGE_API_KEY = os.getenv("VONAGE_API_KEY")
+    VONAGE_API_SECRET = os.getenv("VONAGE_API_SECRET")
+    VONAGE_FROM_NUMBER = os.getenv("VONAGE_FROM_NUMBER")
+    VONAGE_WHATSAPP_NUMBER = os.getenv("VONAGE_WHATSAPP_NUMBER")

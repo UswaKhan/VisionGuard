@@ -4,7 +4,8 @@ import os
 import time
 import threading
 from datetime import datetime
-from flask import Blueprint, jsonify, request, current_app
+from flask import Blueprint, jsonify, request, current_app, redirect, url_for
+from flask_login import current_user
 from mediapipe.tasks.python.vision.pose_landmarker import (
     PoseLandmarker,
     PoseLandmarkerOptions,
@@ -271,6 +272,9 @@ def generate_frames(app):
 
 @stream.route("/start", methods=["POST"])
 def start_stream():
+    if not current_user.is_authenticated or current_user.user_type != "admin":
+        return jsonify({"message": "Unauthorized"}), 401
+
     global is_streaming
 
     if is_streaming:
@@ -286,6 +290,9 @@ def start_stream():
 
 @stream.route("/stop", methods=["POST"])
 def stop_stream():
+    if not current_user.is_authenticated or current_user.user_type != "admin":
+        return jsonify({"message": "Unauthorized"}), 401
+
     global is_streaming
 
     if not is_streaming:
@@ -299,4 +306,7 @@ def stop_stream():
 
 @stream.route("/status", methods=["GET"])
 def stream_status():
+    if not current_user.is_authenticated:
+        return jsonify({"message": "Unauthorized"}), 401
+
     return jsonify({"is_streaming": is_streaming}), 200

@@ -1,0 +1,11 @@
+To start venv run:
+venv\Scripts\activate
+
+To run the system:
+python run.py
+
+To check the system locally:
+http://localhost:5000/login
+
+To check the system on other devices with same network:
+http://192.168.1.85:5000/login

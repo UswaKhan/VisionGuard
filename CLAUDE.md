@@ -23,7 +23,7 @@ AI-powered elderly/patient monitoring system. See `PROJECT.md` for the full spec
 - `app/detection/hand_gesture.py` — raised hand detector
 - `app/detection/fall_detection.py` — fall detector
 - `app/alerts/email_alert.py` — email sending
-- `app/alerts/sms_alert.py` — SMS stub (prints to console)
+- `app/alerts/sms_alert.py` — SMS sending via Vonage
 
 ## Known Design Decisions
 
@@ -32,7 +32,10 @@ AI-powered elderly/patient monitoring system. See `PROJECT.md` for the full spec
 - SocketIO uses `async_mode="threading"` (not eventlet)
 - Camera index is hardcoded to `1` with `cv2.CAP_DSHOW` (Windows DirectShow)
 - Detection runs every 3rd frame for performance
-- SMS alerting is a stub — prints to console, no real SMS provider integrated
+- SMS alerting uses Vonage SMS API (`vonage` Python SDK, API key/secret auth, pay-as-you-go)
+- Vonage trial accounts append `[FREE SMS DEMO, TEST MESSAGE]` to SMS — removed after adding payment info
+- Phone numbers must be in international format (e.g. `923091716570`); local Pakistani numbers starting with `0` are auto-converted in `sms_alert.py`
+- Vonage credentials (`VONAGE_API_KEY`, `VONAGE_API_SECRET`, `VONAGE_FROM_NUMBER`) are in `.env` — secrets with special characters need single quotes
 - Same-browser multi-role login is not supported (cookie-based session limitation — use separate browsers to test admin and caregiver simultaneously)
 
 ---
@@ -87,17 +90,17 @@ AI-powered elderly/patient monitoring system. See `PROJECT.md` for the full spec
 | 4.6 | Raise hand again immediately after a confirmed event → new countdown starts | PASS |
 | 4.7 | Raise hand while a fall countdown is active → waits, fall takes priority | PASS |
 
-### 5. Fall Detection — NOT YET TESTED
+### 5. Fall Detection — PASSED
 
 | # | Test Case | Status |
 |---|-----------|--------|
-| 5.1 | Simulate fall (lie down / go horizontal) → "FALL DETECTED!" label appears | |
-| 5.2 | Stay horizontal for 4+ consecutive detection frames → countdown starts | |
-| 5.3 | Stay down through full countdown → event is created | |
-| 5.4 | Fall then get back up before countdown completes → countdown cancels | |
-| 5.5 | Briefly go horizontal (1-3 detection frames) → no countdown starts | |
-| 5.6 | Fall again within 30 seconds of a confirmed fall → no new detection (cooldown) | |
-| 5.7 | Fall again after 30 seconds → new detection and countdown starts | |
+| 5.1 | Simulate fall (lie down / go horizontal) → "FALL DETECTED!" label appears | PASS |
+| 5.2 | Stay horizontal for 4+ consecutive detection frames → countdown starts | PASS |
+| 5.3 | Stay down through full countdown → event is created | PASS |
+| 5.4 | Fall then get back up before countdown completes → countdown cancels | PASS |
+| 5.5 | Briefly go horizontal (1-3 detection frames) → no countdown starts | PASS |
+| 5.6 | Fall again within 30 seconds of a confirmed fall → no new detection (cooldown) | PASS |
+| 5.7 | Fall again after 30 seconds → new detection and countdown starts | PASS |
 
 ### 6. Event Countdown Behavior — PASSED
 
@@ -132,13 +135,13 @@ AI-powered elderly/patient monitoring system. See `PROJECT.md` for the full spec
 | 8.7 | Inactive caregiver does NOT receive email | PASS |
 | 8.8 | Email fails (bad SMTP config) → error logged, stream continues | PASS |
 
-### 9. SMS Alerts — NOT YET TESTED
+### 9. SMS Alerts — PASSED
 
 | # | Test Case | Status |
 |---|-----------|--------|
-| 9.1 | SMS triggered on confirmed event → correct phones targeted | |
-| 9.2 | SMS message matches event type | |
-| 9.3 | SMS failure does not block the system | |
+| 9.1 | SMS triggered on confirmed event → correct phones targeted | PASS |
+| 9.2 | SMS message matches event type | PASS |
+| 9.3 | SMS failure does not block the system | PASS |
 
 ### 10. Admin Dashboard — PASSED
 

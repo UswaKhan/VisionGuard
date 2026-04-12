@@ -13,19 +13,11 @@ class User(UserMixin):
         self.id = id
         self.email = email
         self.user_type = user_type
-        self.is_active = is_active
+        self._is_active = is_active
 
-    def is_authenticated(self):
-        return True
-
+    @property
     def is_active(self):
-        return self.is_active
-
-    def is_anonymous(self):
-        return False
-
-    def get_id(self):
-        return str(self.id)
+        return self._is_active
 
 
 @login_manager.user_loader

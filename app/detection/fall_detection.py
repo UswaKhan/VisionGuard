@@ -8,6 +8,11 @@ class FallDetector:
         self.required_frames = 4
         self.cooldown_duration = 30
         self.last_fall_time = None
+        self.was_upright = False
+        self.prev_shoulder_y = None
+        self.prev_time = None
+        self.rapid_drop = False
+        self.drop_velocity_threshold = 0.35
 
     def detect(self, frame, landmarks, h, w):
         if self.last_fall_time is not None:
@@ -36,7 +41,25 @@ class FallDetector:
                 y_diff = abs(avg_shoulder_y - avg_hip_y)
                 x_diff = abs(avg_shoulder_x - avg_hip_x)
 
-                if x_diff > 0.01 and y_diff / x_diff < 0.5:
+                is_horizontal = x_diff > 0.01 and y_diff / x_diff < 0.5
+                is_upright = y_diff > 0.01 and y_diff / (x_diff + 0.001) > 1.0
+
+                if is_upright:
+                    self.was_upright = True
+                    self.rapid_drop = False
+
+                now = time.time()
+                if self.was_upright and self.prev_shoulder_y is not None and self.prev_time is not None:
+                    dt = now - self.prev_time
+                    if dt > 0:
+                        velocity = (avg_shoulder_y - self.prev_shoulder_y) / dt
+                        if velocity > self.drop_velocity_threshold:
+                            self.rapid_drop = True
+
+                self.prev_shoulder_y = avg_shoulder_y
+                self.prev_time = now
+
+                if is_horizontal and self.was_upright and self.rapid_drop:
                     detected_this_frame = True
                     cv2.putText(
                         frame,
@@ -60,6 +83,10 @@ class FallDetector:
     def start_cooldown(self):
         self.consecutive_frames = 0
         self.last_fall_time = time.time()
+        self.was_upright = False
+        self.rapid_drop = False
+        self.prev_shoulder_y = None
+        self.prev_time = None
 
     def close(self):
         pass

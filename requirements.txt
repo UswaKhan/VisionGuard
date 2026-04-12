@@ -10,3 +10,4 @@ mediapipe
 ultralytics
 pillow
 eventlet
+vonage
