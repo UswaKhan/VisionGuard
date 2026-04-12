@@ -118,7 +118,7 @@ def save_event_and_alert(app, frame, event_type):
 def generate_frames(app):
     global camera, is_streaming, event_countdown, current_event_type
 
-    camera = cv2.VideoCapture(1, cv2.CAP_DSHOW)
+    camera = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
     if not camera.isOpened():
         print(">>> Camera failed to open")
