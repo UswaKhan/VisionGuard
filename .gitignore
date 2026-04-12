@@ -21,3 +21,7 @@ app/static/events/*.jpg
 # Windows
 Thumbs.db
 desktop.ini
+
+# Dev notes
+Commands.txt
+CLAUDE.md
