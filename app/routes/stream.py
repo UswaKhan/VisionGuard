@@ -150,6 +150,7 @@ def generate_frames(app):
             time.sleep(0.01)
             continue
 
+        frame = cv2.flip(frame, 1)
         clean_frame = frame.copy()
 
         frame_counter += 1
