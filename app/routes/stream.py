@@ -115,13 +115,23 @@ def save_event_and_alert(app, frame, event_type):
         print(f"Event save error: {e}")
 
 
+def open_camera(app):
+    print(">>> Trying local webcam...")
+    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+    if cap.isOpened():
+        print(">>> Webcam connected successfully")
+        return cap, True  # mirror flip for front-facing webcam
+
+    return None, False
+
+
 def generate_frames(app):
     global camera, is_streaming, event_countdown, current_event_type
 
-    camera = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+    camera, mirror_flip = open_camera(app)
 
-    if not camera.isOpened():
-        print(">>> Camera failed to open")
+    if camera is None or not camera.isOpened():
+        print(">>> No camera available")
         is_streaming = False
         return
 
@@ -150,7 +160,8 @@ def generate_frames(app):
             time.sleep(0.01)
             continue
 
-        frame = cv2.flip(frame, 1)
+        if mirror_flip:
+            frame = cv2.flip(frame, 1)
         clean_frame = frame.copy()
 
         frame_counter += 1
