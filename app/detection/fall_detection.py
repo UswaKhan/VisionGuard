@@ -80,6 +80,36 @@ class FallDetector:
 
         return frame, is_fall
 
+    def is_lying_down(self, landmarks):
+        """Posture-only check: is the person horizontal right now?
+        Unlike detect(), this needs no rapid drop — used to tell whether a
+        fallen person is still on the ground."""
+        if not landmarks:
+            return False
+
+        left_shoulder = landmarks[11]
+        right_shoulder = landmarks[12]
+        left_hip = landmarks[23]
+        right_hip = landmarks[24]
+
+        if not (
+            left_shoulder.visibility > 0.5
+            and right_shoulder.visibility > 0.5
+            and left_hip.visibility > 0.5
+            and right_hip.visibility > 0.5
+        ):
+            return False
+
+        avg_shoulder_y = (left_shoulder.y + right_shoulder.y) / 2
+        avg_hip_y = (left_hip.y + right_hip.y) / 2
+        avg_shoulder_x = (left_shoulder.x + right_shoulder.x) / 2
+        avg_hip_x = (left_hip.x + right_hip.x) / 2
+
+        y_diff = abs(avg_shoulder_y - avg_hip_y)
+        x_diff = abs(avg_shoulder_x - avg_hip_x)
+
+        return x_diff > 0.01 and y_diff / x_diff < 0.5
+
     def start_cooldown(self):
         self.consecutive_frames = 0
         self.last_fall_time = time.time()

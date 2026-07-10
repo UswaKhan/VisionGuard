@@ -245,5 +245,35 @@
                 statusBadge.className = 'status-badge live';
             }
         });
+
+    // Arrow-key camera control (pan/tilt)
+    const keyToDirection = {
+        ArrowUp: 'up',
+        ArrowDown: 'down',
+        ArrowLeft: 'left',
+        ArrowRight: 'right'
+    };
+    const heldKeys = new Set();
+
+    document.addEventListener('keydown', function(e) {
+        const direction = keyToDirection[e.key];
+        if (!direction) return;
+        e.preventDefault();
+        if (heldKeys.has(e.key)) return;   // ignore key auto-repeat
+        heldKeys.add(e.key);
+        fetch('/stream/move', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ direction: direction })
+        });
+    });
+
+    document.addEventListener('keyup', function(e) {
+        const direction = keyToDirection[e.key];
+        if (!direction) return;
+        e.preventDefault();
+        heldKeys.delete(e.key);
+        fetch('/stream/move/stop', { method: 'POST' });
+    });
 </script>
 {% endblock %}

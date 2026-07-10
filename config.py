@@ -22,3 +22,5 @@ class Config:
     VONAGE_API_SECRET = os.getenv("VONAGE_API_SECRET")
     VONAGE_FROM_NUMBER = os.getenv("VONAGE_FROM_NUMBER")
     VONAGE_WHATSAPP_NUMBER = os.getenv("VONAGE_WHATSAPP_NUMBER")
+    RTSP_URL = os.getenv("RTSP_URL")
+    ONVIF_PORT = int(os.getenv("ONVIF_PORT", "2020"))

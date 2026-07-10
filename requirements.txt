@@ -11,3 +11,4 @@ ultralytics
 pillow
 eventlet
 vonage
+onvif-zeep

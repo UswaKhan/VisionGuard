@@ -1,13 +1,17 @@
 # VisionGuard
 
-AI-powered real-time monitoring system for elderly individuals and patients. Uses a live camera feed with pose estimation to detect **falls** and **raised-hand help gestures**, then alerts caregivers instantly via **email** and **SMS**.
+AI-powered real-time monitoring system for elderly individuals and patients. Uses a live camera feed (CCTV/RTSP or webcam) with pose estimation to detect **falls** and **raised-hand help gestures**, then alerts caregivers instantly via **email** and **SMS**.
 
 ---
 
 ## Features
 
 - **Live Camera Stream** — Real-time video feed accessible through a web dashboard via WebSocket
-- **Fall Detection** — Detects horizontal torso orientation using MediaPipe pose landmarks
+- **CCTV / RTSP Support** — Connects to a network CCTV camera (e.g. TP-Link Tapo) over RTSP, with automatic fallback to the local webcam if the CCTV drops
+- **Low-Latency Streaming** — A background reader keeps only the newest frame and detection runs on a downscaled copy, so the feed stays near real-time
+- **PTZ Camera Control** — Pan/tilt the CCTV camera live from the admin dashboard using the keyboard arrow keys (over ONVIF)
+- **Fall Detection** — Detects a rapid drop into a horizontal torso posture using MediaPipe pose landmarks
+- **Continuous Fall Alerting** — While a fallen person stays on the ground, the alert repeats every 30 seconds until they get up or are helped
 - **Hand Gesture Detection** — Detects raised hand (wrist above shoulder) as a help signal
 - **Countdown Confirmation** — 5-second countdown before confirming events, cancels if condition clears (reduces false positives)
 - **Email Alerts** — Sends email with event image attachment to admin and all active caregivers
@@ -26,6 +30,7 @@ AI-powered real-time monitoring system for elderly individuals and patients. Use
 | Database         | PostgreSQL, Flask-SQLAlchemy        |
 | Authentication   | Flask-Login                         |
 | Computer Vision  | OpenCV, MediaPipe Pose Landmarker   |
+| Camera Control   | ONVIF (onvif-zeep) for PTZ          |
 | Email            | Flask-Mail (Gmail SMTP)             |
 | SMS              | Vonage SMS API                      |
 | Frontend         | Bootstrap 5, Font Awesome, Socket.IO|
@@ -43,6 +48,7 @@ VisionGuard_FYP/
 ├── app/
 │   ├── __init__.py               # App factory (Flask, SocketIO, SQLAlchemy, Mail)
 │   ├── models.py                 # Caregiver, Event, Alert models
+│   ├── ptz.py                    # ONVIF pan/tilt camera controller
 │   ├── routes/
 │   │   ├── auth.py               # Login/logout, User class
 │   │   ├── admin.py              # Admin CRUD routes
@@ -70,7 +76,7 @@ VisionGuard_FYP/
 
 - Python 3.10+
 - PostgreSQL
-- A connected camera (webcam)
+- A camera — either a CCTV/RTSP camera (e.g. TP-Link Tapo, with RTSP + ONVIF enabled) or a local webcam
 - Gmail account with [App Password](https://support.google.com/accounts/answer/185833) for email alerts
 - Vonage account for SMS alerts
 
@@ -132,7 +138,14 @@ VisionGuard_FYP/
    VONAGE_API_KEY=your_vonage_api_key
    VONAGE_API_SECRET=your_vonage_api_secret
    VONAGE_FROM_NUMBER=your_vonage_number
+
+   # CCTV / RTSP camera (optional — omit to use the local webcam)
+   # Username/password are the Camera Account set in the Tapo app.
+   RTSP_URL=rtsp://username:password@192.168.1.x:554/cam/stream2
+   ONVIF_PORT=2020
    ```
+
+   If `RTSP_URL` is not set, the system uses the local webcam automatically.
 
 6. **Run the application**
 
@@ -150,9 +163,10 @@ VisionGuard_FYP/
 
 1. Log in with the admin credentials configured in `.env`
 2. **Start the stream** from the Live Stream page to begin monitoring
-3. **Add caregivers** from the Caregivers page (name, email, phone, password)
-4. View detected events and sent alerts from their respective pages
-5. Delete events or alerts as needed
+3. **Move the camera** (CCTV only) — click the live stream, then use the keyboard **arrow keys** to pan/tilt (hold to move, release to stop)
+4. **Add caregivers** from the Caregivers page (name, email, phone, password)
+5. View detected events and sent alerts from their respective pages
+6. Delete events or alerts as needed
 
 ### Caregiver
 
@@ -165,9 +179,11 @@ VisionGuard_FYP/
 
 ## Detection Logic
 
-- **Fall Detection**: Pose landmarks determine if the torso (shoulders relative to hips) is horizontal. Requires 4+ consecutive detection frames, then starts a 5-second countdown. A 30-second cooldown prevents duplicate alerts.
+- **Fall Detection**: Pose landmarks detect a rapid downward drop into a horizontal torso posture (shoulders level with hips). Requires 4+ consecutive detection frames, then starts a 5-second countdown before the first alert.
+- **Continuous Fall Alerting**: After a confirmed fall, the system keeps watching. As long as the person stays lying down, it repeats the alert every 30 seconds. Alerting stops automatically once the person is upright again.
 - **Hand Gesture**: Detects if either wrist is above the corresponding shoulder. Requires 3+ consecutive detection frames, then starts a 5-second countdown. No cooldown — the person can signal again immediately.
 - **Countdown Cancellation**: If the person recovers (stands up or lowers hand) before the countdown finishes, the event is cancelled and no alert is sent.
+- **Camera Handling**: On start the system connects to the CCTV over RTSP; if that fails or drops mid-stream, it falls back to the local webcam. A background reader keeps only the newest frame and pose detection runs on a downscaled copy to keep latency low.
 
 ---
 

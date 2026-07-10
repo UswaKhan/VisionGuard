@@ -18,9 +18,19 @@ from app.detection.hand_gesture import HandGestureDetector
 from app.detection.fall_detection import FallDetector
 from app.alerts.email_alert import send_email_alert
 from app.alerts.sms_alert import send_sms_alert
+from app.ptz import build_ptz_controller
 
 
 stream = Blueprint("stream", __name__, url_prefix="/stream")
+
+ptz_controller = None
+
+
+def get_ptz():
+    global ptz_controller
+    if ptz_controller is None:
+        ptz_controller = build_ptz_controller(current_app._get_current_object())
+    return ptz_controller
 
 camera = None
 is_streaming = False
@@ -44,6 +54,9 @@ POSE_CONNECTIONS = [
     (26, 28),
 ]
 
+# The 12 key joints we track (shoulders, elbows, wrists, hips, knees, ankles)
+KEY_JOINTS = [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28]
+
 
 def create_pose_landmarker():
     model_path = os.path.join(
@@ -57,9 +70,6 @@ def create_pose_landmarker():
 
 
 def draw_pose(frame, landmarks, h, w):
-    for lm in landmarks:
-        cx, cy = int(lm.x * w), int(lm.y * h)
-        cv2.circle(frame, (cx, cy), 3, (0, 255, 0), -1)
     for start_idx, end_idx in POSE_CONNECTIONS:
         if start_idx < len(landmarks) and end_idx < len(landmarks):
             s = landmarks[start_idx]
@@ -71,6 +81,12 @@ def draw_pose(frame, landmarks, h, w):
                 (0, 200, 0),
                 2,
             )
+    for idx in KEY_JOINTS:
+        if idx < len(landmarks):
+            lm = landmarks[idx]
+            cx, cy = int(lm.x * w), int(lm.y * h)
+            cv2.circle(frame, (cx, cy), 6, (0, 255, 0), -1)
+            cv2.circle(frame, (cx, cy), 6, (0, 0, 0), 1)
 
 
 def save_event_and_alert(app, frame, event_type):
@@ -115,33 +131,94 @@ def save_event_and_alert(app, frame, event_type):
         print(f"Event save error: {e}")
 
 
-def open_camera(app):
+class LatestFrameReader:
+    """Reads frames in the background and keeps only the newest one, so the
+    processing loop never falls behind a backlog of queued RTSP frames."""
+
+    def __init__(self, cap):
+        self.cap = cap
+        self.lock = threading.Lock()
+        self.frame = None
+        self.last_ok_time = time.time()
+        self.running = True
+        self.thread = threading.Thread(target=self._reader, daemon=True)
+        self.thread.start()
+
+    def _reader(self):
+        while self.running:
+            ret, frame = self.cap.read()
+            if ret and frame is not None:
+                with self.lock:
+                    self.frame = frame
+                    self.last_ok_time = time.time()
+            else:
+                time.sleep(0.005)
+
+    def read(self):
+        with self.lock:
+            if self.frame is None:
+                return False, None
+            return True, self.frame.copy()
+
+    def seconds_since_ok(self):
+        with self.lock:
+            return time.time() - self.last_ok_time
+
+    def stop(self):
+        self.running = False
+        try:
+            self.thread.join(timeout=1)
+        except Exception:
+            pass
+        self.cap.release()
+
+
+def open_webcam():
     print(">>> Trying local webcam...")
     cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
     if cap.isOpened():
         print(">>> Webcam connected successfully")
-        return cap, True  # mirror flip for front-facing webcam
+        return cap
+    return None
 
-    return None, False
+
+def open_camera(app):
+    rtsp_url = app.config.get("RTSP_URL")
+
+    if rtsp_url:
+        print(">>> Trying Tapo camera (RTSP)...")
+        # Force TCP transport to avoid corrupted/garbled frames over RTSP
+        os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp"
+        cap = cv2.VideoCapture(rtsp_url, cv2.CAP_FFMPEG)
+        if cap.isOpened():
+            cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # keep latency low
+            print(">>> Tapo camera connected successfully")
+            return cap, "cctv"
+        print(">>> Could not connect to Tapo camera, falling back to webcam")
+
+    return open_webcam(), "webcam"
 
 
 def generate_frames(app):
     global camera, is_streaming, event_countdown, current_event_type
 
-    camera, mirror_flip = open_camera(app)
+    camera, source = open_camera(app)
+    mirror_flip = source == "webcam"
 
     if camera is None or not camera.isOpened():
         print(">>> No camera available")
         is_streaming = False
         return
 
+    reader = LatestFrameReader(camera)
     print(">>> Camera opened, warming up...")
 
     for i in range(20):
-        ret, frame = camera.read()
+        ret, frame = reader.read()
         if ret and frame is not None and frame.mean() > 30:
             print(f">>> Camera ready after {i} frames")
             break
+        time.sleep(0.05)
 
     pose_landmarker = create_pose_landmarker()
     print(">>> Pose model loaded, streaming started")
@@ -153,10 +230,28 @@ def generate_frames(app):
     cached_fall = False
     recovery_frames = 0
     RECOVERY_THRESHOLD = 3
+    CCTV_DROP_TIMEOUT = 3
+    fall_active = False
+    last_fall_alert = 0
+    getup_frames = 0
+    FALL_REPEAT_INTERVAL = 30
 
     while is_streaming:
-        ret, frame = camera.read()
-        if not ret or frame is None:
+        ret, frame = reader.read()
+        if not ret or frame is None or reader.seconds_since_ok() > 1:
+            if source == "cctv" and reader.seconds_since_ok() > CCTV_DROP_TIMEOUT:
+                print(">>> CCTV feed lost — falling back to webcam")
+                reader.stop()
+                webcam = open_webcam()
+                if webcam is None:
+                    print(">>> No webcam available either — stopping stream")
+                    is_streaming = False
+                    break
+                camera = webcam
+                reader = LatestFrameReader(webcam)
+                source = "webcam"
+                mirror_flip = True
+
             time.sleep(0.01)
             continue
 
@@ -171,7 +266,15 @@ def generate_frames(app):
         if frame_counter % 3 == 0:
             try:
                 h, w = frame.shape[:2]
-                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                # Detect on a downscaled copy for speed. Landmarks are
+                # normalized (0-1), so they still map onto the full frame.
+                DETECT_WIDTH = 480
+                if w > DETECT_WIDTH:
+                    scale = DETECT_WIDTH / w
+                    small = cv2.resize(frame, (DETECT_WIDTH, int(h * scale)))
+                else:
+                    small = frame
+                rgb_frame = cv2.cvtColor(small, cv2.COLOR_BGR2RGB)
                 mp_image = Image(image_format=ImageFormat.SRGB, data=rgb_frame)
                 result = pose_landmarker.detect(mp_image)
 
@@ -213,12 +316,12 @@ def generate_frames(app):
                     2,
                 )
 
-        if is_hand_gesture and event_countdown == 0:
+        if is_hand_gesture and event_countdown == 0 and not fall_active:
             current_event_type = "hand_gesture"
             event_countdown = 5
             countdown_start = time.time()
             print(f">>> Hand gesture detected! Countdown started.")
-        elif is_fall and event_countdown == 0:
+        elif is_fall and event_countdown == 0 and not fall_active:
             current_event_type = "fall"
             event_countdown = 5
             countdown_start = time.time()
@@ -232,12 +335,14 @@ def generate_frames(app):
                 recovery_frames = 0
                 print(f">>> Hand lowered — countdown cancelled.")
             elif current_event_type == "fall":
-                if not cached_fall:
+                # Cancel only when the person is genuinely no longer horizontal.
+                if not fall_detector.is_lying_down(cached_landmarks):
                     recovery_frames += 1
                     if recovery_frames >= RECOVERY_THRESHOLD:
                         event_countdown = 0
                         current_event_type = None
                         recovery_frames = 0
+                        fall_active = False
                         print(f">>> Person recovered — countdown cancelled.")
                 else:
                     recovery_frames = 0
@@ -264,21 +369,52 @@ def generate_frames(app):
                         daemon=True,
                     ).start()
                     if evt_type == "fall":
+                        # Keep watching: alert again while the person stays down.
+                        fall_active = True
+                        last_fall_alert = time.time()
+                        getup_frames = 0
                         fall_detector.start_cooldown()
 
                 event_countdown = 0
                 current_event_type = None
 
+        # While a confirmed fall is still on the ground, repeat the alert.
+        if fall_active and event_countdown == 0 and frame_counter % 3 == 0:
+            if fall_detector.is_lying_down(cached_landmarks):
+                getup_frames = 0
+                if time.time() - last_fall_alert >= FALL_REPEAT_INTERVAL:
+                    current_event_type = "fall"
+                    event_countdown = 5
+                    countdown_start = time.time()
+                    recovery_frames = 0
+                    print(">>> Person still down — repeat countdown started.")
+            else:
+                getup_frames += 1
+                if getup_frames >= RECOVERY_THRESHOLD:
+                    fall_active = False
+                    getup_frames = 0
+                    print(">>> Person got up — fall monitoring cleared.")
+
+        if fall_active and event_countdown == 0:
+            cv2.putText(
+                frame,
+                "FALL - MONITORING",
+                (10, 90),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.8,
+                (0, 0, 255),
+                2,
+            )
+
         _, buffer = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 60])
         frame_base64 = base64.b64encode(buffer).decode("utf-8")
         socketio.emit("frame", {"image": frame_base64})
-        time.sleep(0.05)
+        time.sleep(0.02)
 
     print(">>> Stopping stream")
     pose_landmarker.close()
-    if camera:
-        camera.release()
-        camera = None
+    reader.stop()
+    camera = None
     print(">>> Camera released")
 
 
@@ -314,6 +450,43 @@ def stop_stream():
     socketio.emit("stream_stopped")
 
     return jsonify({"message": "Stream stopped"}), 200
+
+
+@stream.route("/move", methods=["POST"])
+def move_camera():
+    if not current_user.is_authenticated or current_user.user_type != "admin":
+        return jsonify({"message": "Unauthorized"}), 401
+
+    data = request.get_json(silent=True) or {}
+    direction = data.get("direction")
+
+    ptz = get_ptz()
+    if ptz is None:
+        return jsonify({"message": "PTZ not configured"}), 400
+
+    try:
+        ptz.move(direction)
+        return jsonify({"message": "moving", "direction": direction}), 200
+    except Exception as e:
+        print(f"PTZ move error: {e}")
+        return jsonify({"message": "PTZ error"}), 500
+
+
+@stream.route("/move/stop", methods=["POST"])
+def move_camera_stop():
+    if not current_user.is_authenticated or current_user.user_type != "admin":
+        return jsonify({"message": "Unauthorized"}), 401
+
+    ptz = get_ptz()
+    if ptz is None:
+        return jsonify({"message": "PTZ not configured"}), 400
+
+    try:
+        ptz.stop()
+        return jsonify({"message": "stopped"}), 200
+    except Exception as e:
+        print(f"PTZ stop error: {e}")
+        return jsonify({"message": "PTZ error"}), 500
 
 
 @stream.route("/status", methods=["GET"])
