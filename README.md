@@ -15,7 +15,7 @@ AI-powered real-time monitoring system for elderly individuals and patients. Use
 - **Hand Gesture Detection** — Detects raised hand (wrist above shoulder) as a help signal
 - **Countdown Confirmation** — 5-second countdown before confirming events, cancels if condition clears (reduces false positives)
 - **Email Alerts** — Sends email with event image attachment to admin and all active caregivers
-- **SMS Alerts** — Sends SMS via Vonage to admin and caregiver phone numbers
+- **SMS Alerts** — Sends SMS via Vonage to the admin phone number
 - **Event Logging** — Saves timestamped clean snapshots (no overlay) for each confirmed event
 - **Role-Based Access** — Admin (full control) and Caregiver (read-only) dashboards
 - **Caregiver Management** — Admin can add, view, and delete caregiver accounts. New caregivers must verify their email before they can sign in or receive alerts
@@ -169,7 +169,7 @@ VisionGuard_FYP/
 1. Log in with the admin credentials configured in `.env`
 2. **Start the stream** from the Live Stream page to begin monitoring
 3. **Move the camera** (CCTV only) — click the live stream, then use the keyboard **arrow keys** to pan/tilt (hold to move, release to stop)
-4. **Add caregivers** from the Caregivers page (name, email, phone, password). The caregiver gets a verification email and shows as **Pending** until they click the link (valid for 24 hours). Use the resend button if they missed it
+4. **Add caregivers** from the Caregivers page (name, email, password). The caregiver gets a verification email and shows as **Pending** until they click the link (valid for 24 hours). Use the resend button if they missed it
 5. View detected events and sent alerts from their respective pages
 6. Delete events or alerts as needed
 
@@ -196,7 +196,7 @@ VisionGuard_FYP/
 
 | Table     | Key Fields                                           |
 |-----------|------------------------------------------------------|
-| Caregiver | id, name, email, phone, password, is_active, is_verified, created_at |
+| Caregiver | id, name, email, password, is_active, is_verified, created_at |
 | Event     | id, event_type, image_path, created_at               |
 | Alert     | id, event_id (FK), message, sent_to, created_at      |
 

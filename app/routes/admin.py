@@ -91,7 +91,6 @@ def caregivers():
 def add_caregiver():
     name = request.form.get("name")
     email = request.form.get("email")
-    phone = request.form.get("phone")
     password = request.form.get("password")
 
     if Caregiver.query.filter_by(email=email).first():
@@ -99,7 +98,7 @@ def add_caregiver():
         return redirect(url_for("admin.caregivers"))
 
     caregiver = Caregiver(
-        name=name, email=email, phone=phone, password=password, is_verified=False
+        name=name, email=email, password=password, is_verified=False
     )
     db.session.add(caregiver)
     db.session.commit()

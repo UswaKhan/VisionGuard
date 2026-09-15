@@ -1,7 +1,6 @@
 import vonage
 from vonage_sms.requests import SmsMessage
 from flask import current_app
-from app.models import Caregiver
 
 
 def send_sms_alert(event_type):
@@ -18,13 +17,10 @@ def send_sms_alert(event_type):
         vonage_client = vonage.Vonage(auth=client)
 
         admin_phone = current_app.config.get("ADMIN_PHONE")
-        caregivers = Caregiver.query.filter_by(is_active=True, is_verified=True).all()
         phone_numbers = []
 
         if admin_phone:
             phone_numbers.append(admin_phone)
-
-        phone_numbers.extend([cg.phone for cg in caregivers if cg.phone])
 
         # Convert local Pakistani numbers (03xx) to international format (923xx)
         phone_numbers = [

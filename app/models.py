@@ -6,7 +6,6 @@ class Caregiver(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, nullable=False)
     email = db.Column(db.String, unique=True, nullable=False)
-    phone = db.Column(db.String, nullable=False)
     password = db.Column(db.String, nullable=False)
     is_active = db.Column(db.Boolean, default=True)
     is_verified = db.Column(db.Boolean, default=False, nullable=False)

@@ -15,6 +15,8 @@ with app.app_context():
     db.session.execute(text(
         "ALTER TABLE caregiver ALTER COLUMN is_verified SET DEFAULT FALSE"
     ))
+    # Caregiver phone numbers are no longer collected.
+    db.session.execute(text("ALTER TABLE caregiver DROP COLUMN IF EXISTS phone"))
     db.session.commit()
 
 socketio.run(
