@@ -39,6 +39,9 @@
                 </div>
             </div>
         </form>
+        <p class="mb-0 mt-3" style="font-size: 13px; color: var(--text-secondary);">
+            <i class="fas fa-circle-info me-1"></i>A verification email will be sent to the caregiver. Until they verify, they stay Pending and cannot sign in or receive alerts.
+        </p>
     </div>
 </div>
 
@@ -59,7 +62,7 @@
                         <th>Email</th>
                         <th>Phone</th>
                         <th>Status</th>
-                        <th style="width: 100px;">Action</th>
+                        <th style="width: 130px;">Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -76,18 +79,29 @@
                         <td style="font-size: 13px;">{{ caregiver.email }}</td>
                         <td style="font-size: 13px;">{{ caregiver.phone }}</td>
                         <td>
-                            {% if caregiver.is_active %}
+                            {% if not caregiver.is_verified %}
+                                <span class="badge-pending"><i class="fas fa-clock me-1"></i>Pending</span>
+                            {% elif caregiver.is_active %}
                                 <span class="badge-active"><i class="fas fa-check-circle me-1"></i>Active</span>
                             {% else %}
                                 <span class="badge-inactive"><i class="fas fa-minus-circle me-1"></i>Inactive</span>
                             {% endif %}
                         </td>
                         <td>
-                            <form method="POST" action="/admin/caregivers/delete/{{ caregiver.id }}">
-                                <button type="submit" class="btn btn-danger-soft btn-sm" onclick="return confirm('Remove this caregiver?')">
-                                    <i class="fas fa-trash-alt"></i>
-                                </button>
-                            </form>
+                            <div class="d-flex gap-2">
+                                {% if not caregiver.is_verified %}
+                                <form method="POST" action="/admin/caregivers/resend/{{ caregiver.id }}">
+                                    <button type="submit" class="btn btn-accent-soft btn-sm" title="Resend verification email">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                                <form method="POST" action="/admin/caregivers/delete/{{ caregiver.id }}">
+                                    <button type="submit" class="btn btn-danger-soft btn-sm" onclick="return confirm('Remove this caregiver?')" title="Remove caregiver">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -106,18 +120,29 @@
                         </div>
                         <div>
                             <div style="font-weight: 600; font-size: 14px;">{{ caregiver.name }}</div>
-                            {% if caregiver.is_active %}
+                            {% if not caregiver.is_verified %}
+                                <span class="badge-pending" style="font-size: 11px; padding: 3px 10px;"><i class="fas fa-clock me-1"></i>Pending</span>
+                            {% elif caregiver.is_active %}
                                 <span class="badge-active" style="font-size: 11px; padding: 3px 10px;"><i class="fas fa-check-circle me-1"></i>Active</span>
                             {% else %}
                                 <span class="badge-inactive" style="font-size: 11px; padding: 3px 10px;"><i class="fas fa-minus-circle me-1"></i>Inactive</span>
                             {% endif %}
                         </div>
                     </div>
-                    <form method="POST" action="/admin/caregivers/delete/{{ caregiver.id }}">
-                        <button type="submit" class="btn btn-danger-soft btn-sm" onclick="return confirm('Remove this caregiver?')" style="padding: 6px 10px;">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
-                    </form>
+                    <div class="d-flex gap-2">
+                        {% if not caregiver.is_verified %}
+                        <form method="POST" action="/admin/caregivers/resend/{{ caregiver.id }}">
+                            <button type="submit" class="btn btn-accent-soft btn-sm" title="Resend verification email" style="padding: 6px 10px;">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </form>
+                        {% endif %}
+                        <form method="POST" action="/admin/caregivers/delete/{{ caregiver.id }}">
+                            <button type="submit" class="btn btn-danger-soft btn-sm" onclick="return confirm('Remove this caregiver?')" title="Remove caregiver" style="padding: 6px 10px;">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </form>
+                    </div>
                 </div>
                 <div style="font-size: 13px; color: var(--text-secondary);">
                     <div class="mb-1"><i class="fas fa-envelope me-2" style="width: 16px;"></i>{{ caregiver.email }}</div>

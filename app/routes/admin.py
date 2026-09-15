@@ -14,6 +14,7 @@ from flask_login import current_user
 
 from app import db
 from app.models import Event, Alert, Caregiver
+from app.verification import send_verification_email
 
 admin = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -97,11 +98,42 @@ def add_caregiver():
         flash("A caregiver with this email already exists.")
         return redirect(url_for("admin.caregivers"))
 
-    caregiver = Caregiver(name=name, email=email, phone=phone, password=password)
+    caregiver = Caregiver(
+        name=name, email=email, phone=phone, password=password, is_verified=False
+    )
     db.session.add(caregiver)
     db.session.commit()
 
-    flash("Caregiver added successfully.")
+    try:
+        send_verification_email(caregiver)
+        flash(
+            f"Caregiver added. A verification email has been sent to {email}. "
+            "They will stay Pending until they verify."
+        )
+    except Exception as e:
+        print(f"Verification email error: {e}")
+        flash(
+            "Caregiver added, but the verification email could not be sent. "
+            "Please use the resend button to try again."
+        )
+    return redirect(url_for("admin.caregivers"))
+
+
+@admin.route("/caregivers/resend/<int:id>", methods=["POST"])
+@admin_required
+def resend_verification(id):
+    caregiver = Caregiver.query.get_or_404(id)
+
+    if caregiver.is_verified:
+        flash("This caregiver has already verified their email.")
+        return redirect(url_for("admin.caregivers"))
+
+    try:
+        send_verification_email(caregiver)
+        flash(f"Verification email sent again to {caregiver.email}.")
+    except Exception as e:
+        print(f"Verification email error: {e}")
+        flash("Could not send the verification email. Please try again.")
     return redirect(url_for("admin.caregivers"))
 
 

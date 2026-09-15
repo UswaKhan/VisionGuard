@@ -18,7 +18,7 @@ def send_sms_alert(event_type):
         vonage_client = vonage.Vonage(auth=client)
 
         admin_phone = current_app.config.get("ADMIN_PHONE")
-        caregivers = Caregiver.query.filter_by(is_active=True).all()
+        caregivers = Caregiver.query.filter_by(is_active=True, is_verified=True).all()
         phone_numbers = []
 
         if admin_phone:

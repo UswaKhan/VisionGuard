@@ -9,6 +9,7 @@ class Caregiver(db.Model):
     phone = db.Column(db.String, nullable=False)
     password = db.Column(db.String, nullable=False)
     is_active = db.Column(db.Boolean, default=True)
+    is_verified = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __repr__(self):

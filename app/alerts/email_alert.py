@@ -10,7 +10,7 @@ def send_email_alert(event_type, image_path):
     try:
         admin_email = current_app.config.get("MAIL_DEFAULT_SENDER")
 
-        caregivers = Caregiver.query.filter_by(is_active=True).all()
+        caregivers = Caregiver.query.filter_by(is_active=True, is_verified=True).all()
         recipient_emails = [admin_email] if admin_email else []
         recipient_emails.extend([cg.email for cg in caregivers])
 

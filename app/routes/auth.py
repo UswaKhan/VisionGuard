@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, current_user
 from app import db
 from app.models import Caregiver
+from app.verification import confirm_verification_token
 from config import Config
 
 auth = Blueprint("auth", __name__)
@@ -47,16 +48,34 @@ def login():
             return redirect(url_for("admin.dashboard"))
 
         caregiver = Caregiver.query.filter_by(email=email, password=password).first()
-        if caregiver:
+        if caregiver and not caregiver.is_verified:
+            flash(
+                "Please verify your email first. Check your inbox for the verification link."
+            )
+        elif caregiver:
             user = User(
                 str(caregiver.id), caregiver.email, "caregiver", caregiver.is_active
             )
             login_user(user)
             return redirect(url_for("caregiver.dashboard"))
-
-        flash("Invalid email or password")
+        else:
+            flash("Invalid email or password")
 
     return render_template("login.html")
+
+
+@auth.route("/verify-email/<token>")
+def verify_email(token):
+    caregiver, error = confirm_verification_token(token)
+    if error:
+        return render_template("verify_email.html", status=error)
+
+    if caregiver.is_verified:
+        return render_template("verify_email.html", status="already")
+
+    caregiver.is_verified = True
+    db.session.commit()
+    return render_template("verify_email.html", status="success")
 
 
 @auth.route("/logout")

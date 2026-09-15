@@ -18,7 +18,7 @@ AI-powered real-time monitoring system for elderly individuals and patients. Use
 - **SMS Alerts** — Sends SMS via Vonage to admin and caregiver phone numbers
 - **Event Logging** — Saves timestamped clean snapshots (no overlay) for each confirmed event
 - **Role-Based Access** — Admin (full control) and Caregiver (read-only) dashboards
-- **Caregiver Management** — Admin can add, view, and delete caregiver accounts
+- **Caregiver Management** — Admin can add, view, and delete caregiver accounts. New caregivers must verify their email before they can sign in or receive alerts
 
 ---
 
@@ -49,6 +49,7 @@ VisionGuard_FYP/
 │   ├── __init__.py               # App factory (Flask, SocketIO, SQLAlchemy, Mail)
 │   ├── models.py                 # Caregiver, Event, Alert models
 │   ├── ptz.py                    # ONVIF pan/tilt camera controller
+│   ├── verification.py           # Caregiver email verification (signed link + email)
 │   ├── routes/
 │   │   ├── auth.py               # Login/logout, User class
 │   │   ├── admin.py              # Admin CRUD routes
@@ -143,6 +144,10 @@ VisionGuard_FYP/
    # Username/password are the Camera Account set in the Tapo app.
    RTSP_URL=rtsp://username:password@192.168.1.x:554/cam/stream2
    ONVIF_PORT=2020
+
+   # Address caregivers use to reach the system (used in verification emails).
+   # Use your Wi-Fi IP for local testing, or the tunnel link when presenting.
+   BASE_URL=http://192.168.1.x:5000
    ```
 
    If `RTSP_URL` is not set, the system uses the local webcam automatically.
@@ -164,13 +169,13 @@ VisionGuard_FYP/
 1. Log in with the admin credentials configured in `.env`
 2. **Start the stream** from the Live Stream page to begin monitoring
 3. **Move the camera** (CCTV only) — click the live stream, then use the keyboard **arrow keys** to pan/tilt (hold to move, release to stop)
-4. **Add caregivers** from the Caregivers page (name, email, phone, password)
+4. **Add caregivers** from the Caregivers page (name, email, phone, password). The caregiver gets a verification email and shows as **Pending** until they click the link (valid for 24 hours). Use the resend button if they missed it
 5. View detected events and sent alerts from their respective pages
 6. Delete events or alerts as needed
 
 ### Caregiver
 
-1. Log in with credentials created by the admin
+1. Verify your email using the link sent to your inbox, then log in with the credentials created by the admin
 2. View the live stream (read-only)
 3. View event history (read-only)
 4. Receive email and SMS alerts automatically when events are detected
@@ -191,7 +196,7 @@ VisionGuard_FYP/
 
 | Table     | Key Fields                                           |
 |-----------|------------------------------------------------------|
-| Caregiver | id, name, email, phone, password, is_active, created_at |
+| Caregiver | id, name, email, phone, password, is_active, is_verified, created_at |
 | Event     | id, event_type, image_path, created_at               |
 | Alert     | id, event_id (FK), message, sent_to, created_at      |
 
